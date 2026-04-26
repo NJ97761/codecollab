@@ -2,7 +2,7 @@ import { Loader2 } from 'lucide-react';
 import { FileSystemProvider, useFileSystem } from './contexts/FileSystemContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthPage } from './components/AuthPage';
-import { JoinRoom } from './components/JoinRoom';
+import { Dashboard } from './components/Dashboard';
 import { Header } from './components/Header';
 import { FileExplorer } from './components/FileExplorer';
 import { CodeEditor } from './components/CodeEditor';
@@ -45,7 +45,7 @@ function AppContent() {
   }
 
   if (!authUser) return <AuthPage />;
-  if (!state.room) return <JoinRoom />;
+  if (!state.room) return <Dashboard />;
   return <EditorView />;
 }
 

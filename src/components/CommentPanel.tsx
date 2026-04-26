@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFileSystem } from '../contexts/FileSystemContext';
 import {
     MessageSquare, Plus, Check, Trash2, X,
-    ChevronDown, ChevronRight, Send, EyeOff,
+    ChevronDown, ChevronRight, Send, EyeOff, AlertTriangle, Shield,
 } from 'lucide-react';
+import { loadToxicityModel, checkToxicity, quickProfanityCheck } from '../utils/moderation';
 
 export function CommentPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const { state, getFileComments, addComment, resolveComment, deleteComment, isViewer } = useFileSystem();
@@ -11,18 +12,64 @@ export function CommentPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     const [newCommentText, setNewCommentText] = useState('');
     const [showResolved, setShowResolved] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
+    const [moderationWarning, setModerationWarning] = useState('');
+    const [checking, setChecking] = useState(false);
+    const [rejected, setRejected] = useState('');
 
     const activeFileId = state.activeFileId;
     const comments = activeFileId ? getFileComments(activeFileId) : [];
     const activeComments = comments.filter((c) => !c.resolved);
     const resolvedComments = comments.filter((c) => c.resolved);
 
-    const handleAddComment = () => {
+    // Lazy-load ML model when panel opens
+    useEffect(() => {
+        if (isOpen) {
+            loadToxicityModel();
+        }
+    }, [isOpen]);
+
+    // Listen for server-side comment rejection
+    useEffect(() => {
+        const socket = (window as any).__codecollab_socket;
+        if (!socket) return;
+
+        const handler = ({ reason }: { reason: string }) => {
+            setRejected(reason);
+            setTimeout(() => setRejected(''), 5000);
+        };
+        socket.on('comment-rejected', handler);
+        return () => { socket.off('comment-rejected', handler); };
+    }, []);
+
+    const handleAddComment = async () => {
         if (!activeFileId || !newCommentText.trim() || !newCommentLine.trim()) return;
         const lineNum = parseInt(newCommentLine, 10);
         if (isNaN(lineNum) || lineNum < 1) return;
 
-        addComment(activeFileId, lineNum, newCommentText.trim());
+        const text = newCommentText.trim();
+
+        // Quick client-side profanity check
+        if (quickProfanityCheck(text)) {
+            setModerationWarning('⚠️ This comment contains inappropriate language and cannot be posted.');
+            return;
+        }
+
+        // ML toxicity check (non-blocking if model isn't loaded)
+        setChecking(true);
+        try {
+            const result = await checkToxicity(text);
+            if (result.isToxic) {
+                setModerationWarning(`⚠️ This comment was flagged as potentially ${result.labels.join(', ')}. Please rephrase.`);
+                setChecking(false);
+                return;
+            }
+        } catch {
+            // If ML check fails, allow — server will enforce
+        }
+        setChecking(false);
+
+        setModerationWarning('');
+        addComment(activeFileId, lineNum, text);
         setNewCommentText('');
         setNewCommentLine('');
         setIsAdding(false);
@@ -34,7 +81,13 @@ export function CommentPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             handleAddComment();
         } else if (e.key === 'Escape') {
             setIsAdding(false);
+            setModerationWarning('');
         }
+    };
+
+    const handleTextChange = (val: string) => {
+        setNewCommentText(val);
+        setModerationWarning('');
     };
 
     const formatTime = (ts: number) => {
@@ -56,12 +109,16 @@ export function CommentPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                             {activeComments.length}
                         </span>
                     )}
+                    {/* Moderation badge */}
+                    <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 text-[10px] flex items-center gap-0.5">
+                        <Shield size={8} />
+                        Moderated
+                    </span>
                 </div>
                 <div className="flex items-center gap-1">
-                    {/* Hide add button for viewers */}
                     {!isViewer && (
                         <button
-                            onClick={() => setIsAdding(true)}
+                            onClick={() => { setIsAdding(true); setModerationWarning(''); }}
                             className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
                             title="Add Comment"
                         >
@@ -74,11 +131,19 @@ export function CommentPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 </div>
             </div>
 
+            {/* Server-side rejection alert */}
+            {rejected && (
+                <div className="mx-3 mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-2 animate-fade-in">
+                    <AlertTriangle size={14} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-400">{rejected}</p>
+                </div>
+            )}
+
             {/* Viewer notice */}
             {isViewer && (
                 <div className="mx-3 mt-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/40 flex items-center gap-2">
                     <EyeOff size={14} className="text-slate-500 flex-shrink-0" />
-                    <p className="text-xs text-slate-500">You are in view-only mode. You can read comments but cannot add new ones.</p>
+                    <p className="text-xs text-slate-500">You are in view-only mode.</p>
                 </div>
             )}
 
@@ -100,7 +165,7 @@ export function CommentPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     <div className="flex gap-2">
                         <textarea
                             value={newCommentText}
-                            onChange={(e) => setNewCommentText(e.target.value)}
+                            onChange={(e) => handleTextChange(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Write a comment..."
                             rows={2}
@@ -108,11 +173,20 @@ export function CommentPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                         />
                         <button
                             onClick={handleAddComment}
-                            className="self-end p-2 bg-purple-500 hover:bg-purple-400 rounded-lg transition-colors"
+                            disabled={checking}
+                            className="self-end p-2 bg-purple-500 hover:bg-purple-400 rounded-lg transition-colors disabled:opacity-50"
                         >
                             <Send size={12} className="text-white" />
                         </button>
                     </div>
+
+                    {/* Moderation Warning */}
+                    {moderationWarning && (
+                        <div className="mt-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2 animate-fade-in">
+                            <AlertTriangle size={12} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                            <p className="text-[11px] text-amber-300">{moderationWarning}</p>
+                        </div>
+                    )}
                 </div>
             )}
 

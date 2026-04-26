@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { FileItem, Comment, User, UserRole, RemoteCursor, AppState } from '../types';
+import { FileItem, Comment, User, UserRole, RemoteCursor, AppState, RoomSummary } from '../types';
 import { connectSocket, disconnectSocket, getSocket } from '../socket';
 import { useAuth } from './AuthContext';
 
 interface FileSystemContextType {
   state: AppState;
-  createRoom: (userName: string) => Promise<void>;
+  createRoom: (userName: string, projectName: string, language: string) => Promise<void>;
   joinRoom: (roomId: string, userName: string) => Promise<void>;
   leaveRoom: () => void;
   createFile: (name: string, language: string) => void;
@@ -19,6 +19,8 @@ interface FileSystemContextType {
   getFileComments: (fileId: string) => Comment[];
   updateCursor: (fileId: string, position: { lineNumber: number; column: number }) => void;
   changeUserRole: (targetUserId: string, newRole: UserRole) => void;
+  fetchUserRooms: () => Promise<RoomSummary[]>;
+  deleteRoom: (roomId: string) => Promise<void>;
   isOwner: boolean;
   isEditor: boolean;
   isViewer: boolean;
@@ -42,7 +44,6 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // Computed role booleans
   const role = state.currentUser?.role;
   const isOwner = role === 'owner';
   const isEditor = role === 'editor' || role === 'owner';
@@ -169,11 +170,9 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       });
     });
 
-    // Role change broadcast from server
     socket.on('role-updated', ({ users }: { users: User[] }) => {
       setState((prev) => {
         if (!prev.room) return prev;
-        // Also update currentUser's role if it changed
         const updatedCurrentUser = users.find((u) => u.id === prev.currentUser?.id);
         return {
           ...prev,
@@ -201,13 +200,13 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Room Operations ──────────────────────────────────────────────────────
-  const createRoom = useCallback(async (userName: string) => {
+  const createRoom = useCallback(async (userName: string, projectName: string, language: string) => {
     const uid = authUser?.uid || 'anonymous';
     setState((prev) => ({ ...prev, connectionStatus: 'connecting' }));
     const res = await fetch(`${SERVER_URL}/api/rooms`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ownerUid: uid }),
+      body: JSON.stringify({ ownerUid: uid, name: projectName, language }),
     });
     const { roomId } = await res.json();
     await joinRoom(roomId, userName);
@@ -262,6 +261,29 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       remoteCursors: [],
     });
   }, []);
+
+  // ── Fetch user's rooms ───────────────────────────────────────────────────
+  const fetchUserRooms = useCallback(async (): Promise<RoomSummary[]> => {
+    const uid = authUser?.uid;
+    if (!uid) return [];
+    try {
+      const res = await fetch(`${SERVER_URL}/api/rooms/user/${uid}`);
+      const data = await res.json();
+      return data.rooms || [];
+    } catch {
+      return [];
+    }
+  }, [authUser]);
+
+  const deleteRoom = useCallback(async (roomId: string): Promise<void> => {
+    const uid = authUser?.uid;
+    if (!uid) return;
+    await fetch(`${SERVER_URL}/api/rooms/${roomId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid }),
+    });
+  }, [authUser]);
 
   // ── File Operations ──────────────────────────────────────────────────────
   const createFile = useCallback((name: string, language: string) => {
@@ -376,6 +398,8 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
         getFileComments,
         updateCursor,
         changeUserRole,
+        fetchUserRooms,
+        deleteRoom,
         isOwner,
         isEditor,
         isViewer,

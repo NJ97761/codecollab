@@ -41,10 +41,23 @@ export interface RemoteCursor {
 
 export interface RoomState {
   id: string;
-  ownerId: string;   // Firebase Auth UID of the room creator
+  name: string;           // project name
+  language: string;       // primary language
+  ownerId: string;        // Firebase Auth UID of the room creator
   files: FileItem[];
   users: User[];
   comments: Comment[];
+}
+
+export interface RoomSummary {
+  id: string;
+  name: string;
+  language: string;
+  ownerId: string;
+  createdAt: number;
+  lastModifiedAt: number;
+  fileCount: number;
+  participants: string[];  // UIDs of all participants
 }
 
 export interface AppState {
