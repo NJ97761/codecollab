@@ -7,9 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const admin = require('firebase-admin');
 const path = require('path');
 const fs = require('fs');
-const Filter = require('bad-words');
-
-const profanityFilter = new Filter();
+const leoProfanity = require('leo-profanity');
 
 // ─── Firebase Admin Init ───────────────────────────────────────────────────────
 let db = null;
@@ -346,7 +344,7 @@ io.on('connection', (socket) => {
     if (!currentRoomId || !currentUser || currentUser.role === 'viewer') return;
     try {
       // Server-side profanity check
-      if (profanityFilter.isProfane(comment.text)) {
+      if (leoProfanity.check(comment.text)) {
         socket.emit('comment-rejected', { reason: '🚫 Comment blocked: contains inappropriate language.' });
         return;
       }
