@@ -234,6 +234,116 @@ app.get('/api/rooms/user/:uid', async (req, res) => {
   }
 });
 
+// ─── Code Execution ────────────────────────────────────────────────────────────
+const { execFile, exec } = require('child_process');
+const os = require('os');
+
+// Map project language → { cmd, args(mainFile), ext }
+const EXEC_MAP = {
+  javascript: { cmd: 'node',    ext: '.js'   },
+  typescript: { cmd: 'npx',    args: ['ts-node', '--esm'], ext: '.ts' },
+  python:     { cmd: 'python',  ext: '.py'   },
+  python3:    { cmd: 'python3', ext: '.py'   },
+  java:       { cmd: 'java',    ext: '.java' },  // compiled specially
+  cpp:        { cmd: 'g++',     ext: '.cpp'  },  // compiled specially
+  c:          { cmd: 'gcc',     ext: '.c'    },  // compiled specially
+  go:         { cmd: 'go',      args: ['run'], ext: '.go' },
+  rust:       { cmd: 'rustc',   ext: '.rs'   },  // compiled specially
+  ruby:       { cmd: 'ruby',    ext: '.rb'   },
+  php:        { cmd: 'php',     ext: '.php'  },
+};
+
+function runInTmp(language, files, callback) {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codesphere-'));
+  const startTime = Date.now();
+
+  // Write all files into temp dir
+  for (const f of files) {
+    fs.writeFileSync(path.join(tmpDir, f.name), f.content || '');
+  }
+
+  const map = EXEC_MAP[language];
+  if (!map) {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    return callback(null, { stdout: '', stderr: `Language '${language}' is not supported for execution on this server.`, exitCode: 1, runtimeMs: 0 });
+  }
+
+  // Find main file
+  const mainFile = files.find(f => f.name.endsWith(map.ext)) || files[0];
+  if (!mainFile) {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    return callback(null, { stdout: '', stderr: 'No runnable file found.', exitCode: 1, runtimeMs: 0 });
+  }
+  const mainPath = path.join(tmpDir, mainFile.name);
+
+  const done = (err, stdout, stderr, code) => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    callback(err, { stdout: stdout || '', stderr: stderr || '', exitCode: code ?? (err ? 1 : 0), runtimeMs: Date.now() - startTime });
+  };
+
+  // Compiled languages need a two-step approach
+  if (language === 'cpp' || language === 'c') {
+    const outBin = path.join(tmpDir, 'a.out');
+    const compiler = language === 'cpp' ? 'g++' : 'gcc';
+    exec(`${compiler} "${mainPath}" -o "${outBin}"`, { timeout: 15000 }, (err, _, stderr) => {
+      if (err) return done(null, '', stderr, 1);
+      exec(`"${outBin}"`, { timeout: 10000, cwd: tmpDir }, (err2, stdout2, stderr2) => {
+        done(null, stdout2, stderr2, err2 ? 1 : 0);
+      });
+    });
+    return;
+  }
+
+  if (language === 'rust') {
+    const outBin = path.join(tmpDir, 'program');
+    exec(`rustc "${mainPath}" -o "${outBin}"`, { timeout: 30000 }, (err, _, stderr) => {
+      if (err) return done(null, '', stderr, 1);
+      exec(`"${outBin}"`, { timeout: 10000, cwd: tmpDir }, (err2, stdout2, stderr2) => {
+        done(null, stdout2, stderr2, err2 ? 1 : 0);
+      });
+    });
+    return;
+  }
+
+  if (language === 'java') {
+    exec(`javac "${mainPath}"`, { timeout: 15000, cwd: tmpDir }, (err, _, stderr) => {
+      if (err) return done(null, '', stderr, 1);
+      // Class name = filename without extension
+      const className = path.basename(mainFile.name, '.java');
+      exec(`java -cp "${tmpDir}" ${className}`, { timeout: 10000 }, (err2, stdout2, stderr2) => {
+        done(null, stdout2, stderr2, err2 ? 1 : 0);
+      });
+    });
+    return;
+  }
+
+  // Interpreted: node, python, ruby, php, go run
+  const cmdArgs = language === 'go'
+    ? ['run', mainPath]
+    : language === 'typescript'
+    ? ['ts-node', mainPath]
+    : [mainPath];
+
+  const cmdName = language === 'typescript' ? 'npx' : map.cmd;
+
+  exec(`${cmdName} ${cmdArgs.map(a => `"${a}"`).join(' ')}`, { timeout: 10000, cwd: tmpDir }, (err, stdout, stderr) => {
+    done(null, stdout, stderr, err ? (err.code || 1) : 0);
+  });
+}
+
+app.post('/api/run', (req, res) => {
+  const { language, files } = req.body;
+  if (!language || !files || !Array.isArray(files)) {
+    return res.status(400).json({ error: 'language and files are required' });
+  }
+  // Try python3 first on Unix, fall back to python
+  const lang = language === 'python' && process.platform !== 'win32' ? 'python3' : language;
+  runInTmp(lang, files, (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(result);
+  });
+});
+
 // ─── Socket.IO ─────────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`[WS] Connected: ${socket.id}`);

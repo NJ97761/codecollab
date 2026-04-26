@@ -7,23 +7,42 @@ import { Header } from './components/Header';
 import { FileExplorer } from './components/FileExplorer';
 import { CodeEditor } from './components/CodeEditor';
 import { CommentPanel } from './components/CommentPanel';
+import { OutputPanel } from './components/OutputPanel';
 import { StatusBar } from './components/StatusBar';
 import { useState } from 'react';
 
 function EditorView() {
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [isOutputOpen, setIsOutputOpen] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const [runTrigger, setRunTrigger] = useState(0);
+
+  const handleRun = () => {
+    setIsOutputOpen(true);
+    setIsRunning(true);
+    setRunTrigger(t => t + 1);
+  };
 
   return (
     <div className="h-screen flex flex-col bg-slate-950">
       <Header
         onToggleComments={() => setIsCommentsOpen(!isCommentsOpen)}
         isCommentsOpen={isCommentsOpen}
+        onRun={handleRun}
+        isRunning={isRunning}
+        isOutputOpen={isOutputOpen}
       />
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         <FileExplorer />
         <CodeEditor />
         <CommentPanel isOpen={isCommentsOpen} onClose={() => setIsCommentsOpen(false)} />
       </div>
+      <OutputPanel
+        isOpen={isOutputOpen}
+        onClose={() => setIsOutputOpen(false)}
+        runTrigger={runTrigger}
+        onRunComplete={() => setIsRunning(false)}
+      />
       <StatusBar />
     </div>
   );

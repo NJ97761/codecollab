@@ -1,11 +1,19 @@
 import { useState } from 'react';
-import { LogOut, Copy, Check, MessageSquare, Users, Crown, Edit3, Eye } from 'lucide-react';
+import { LogOut, Copy, Check, MessageSquare, Users, Crown, Edit3, Eye, Play, Loader2 } from 'lucide-react';
 import { useFileSystem } from '../contexts/FileSystemContext';
 import { useAuth } from '../contexts/AuthContext';
 import { UserPresence } from './UserPresence';
 import { ParticipantsPanel } from './ParticipantsPanel';
 
-export function Header({ onToggleComments, isCommentsOpen }: { onToggleComments: () => void; isCommentsOpen: boolean }) {
+interface HeaderProps {
+  onToggleComments: () => void;
+  isCommentsOpen: boolean;
+  onRun: () => void;
+  isRunning: boolean;
+  isOutputOpen: boolean;
+}
+
+export function Header({ onToggleComments, isCommentsOpen, onRun, isRunning, isOutputOpen }: HeaderProps) {
   const { state, leaveRoom, isOwner, isViewer } = useFileSystem();
   const { signOut } = useAuth();
   const [copied, setCopied] = useState(false);
@@ -90,6 +98,25 @@ export function Header({ onToggleComments, isCommentsOpen }: { onToggleComments:
       {/* Right: Users + Actions */}
       <div className="flex items-center gap-3 relative">
         <UserPresence users={users} />
+
+        {/* ▶ Run Button */}
+        {state.room && (
+          <button
+            id="header-run-btn"
+            onClick={onRun}
+            disabled={isRunning}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              isOutputOpen
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30 hover:border-emerald-400/50'
+            } disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-emerald-900/20`}
+          >
+            {isRunning
+              ? <Loader2 size={13} className="animate-spin" />
+              : <Play size={13} className="fill-current" />}
+            Run
+          </button>
+        )}
 
         <div className="w-px h-6 bg-slate-800" />
 

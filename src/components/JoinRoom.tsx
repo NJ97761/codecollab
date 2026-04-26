@@ -17,7 +17,7 @@ export function JoinRoom() {
         setLoading(true);
         setError('');
         try {
-            await createRoom(userName.trim());
+            await createRoom(userName.trim(), 'Untitled Project', 'javascript');
         } catch {
             setError('Failed to create room. Is the server running?');
             setLoading(false);

@@ -3,7 +3,7 @@ import { useFileSystem } from '../contexts/FileSystemContext';
 import { useAuth } from '../contexts/AuthContext';
 import { RoomSummary } from '../types';
 import {
-  Plus, ArrowRight, Loader2, LogOut, Trash2, Users, Clock, Code2,
+  Plus, ArrowRight, Loader2, LogOut, Trash2, Clock, Code2,
   FolderOpen, Sparkles, Zap, FileCode,
 } from 'lucide-react';
 
