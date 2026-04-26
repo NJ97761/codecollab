@@ -1,4 +1,4 @@
-import { useFileSystem } from '../contexts/FileSystemContext';
+import { useFileSystem } from './FileSystemContext';
 import { Circle, Loader2, Users, MessageSquare } from 'lucide-react';
 
 export function StatusBar() {

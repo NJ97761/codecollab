@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useFileSystem } from '../contexts/FileSystemContext';
+import { useFileSystem } from './FileSystemContext';
 import {
     MessageSquare, Plus, Check, Trash2, X,
     ChevronDown, ChevronRight, Send, EyeOff, AlertTriangle, Shield,
 } from 'lucide-react';
-import { loadToxicityModel, checkToxicity, quickProfanityCheck } from '../utils/moderation';
+import { loadToxicityModel, checkToxicity, quickProfanityCheck } from './moderation';
 
 export function CommentPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const { state, getFileComments, addComment, resolveComment, deleteComment, isViewer } = useFileSystem();

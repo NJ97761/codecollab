@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Users, Crown, Eye, Edit3, ChevronDown, X } from 'lucide-react';
-import { useFileSystem } from '../contexts/FileSystemContext';
+import { useFileSystem } from './FileSystemContext';
 import { UserRole } from '../types';
 
 export function ParticipantsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

@@ -3,8 +3,8 @@ import {
   Play, X, Trash2, ChevronDown, ChevronUp,
   Terminal, Globe, CheckCircle2, XCircle, Loader2, Clock,
 } from 'lucide-react';
-import { useFileSystem } from '../contexts/FileSystemContext';
-import { runCode, RunResult } from '../utils/runCode';
+import { useFileSystem } from './FileSystemContext';
+import { runCode, RunResult } from './runCode';
 
 interface OutputPanelProps {
   isOpen: boolean;

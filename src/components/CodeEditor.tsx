@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
-import { useFileSystem } from '../contexts/FileSystemContext';
+import { useFileSystem } from './FileSystemContext';
 import { FileText, Eye } from 'lucide-react';
 import type { editor } from 'monaco-editor';
 

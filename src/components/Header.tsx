@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LogOut, Copy, Check, MessageSquare, Users, Crown, Edit3, Eye, Play, Loader2 } from 'lucide-react';
-import { useFileSystem } from '../contexts/FileSystemContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useFileSystem } from './FileSystemContext';
+import { useAuth } from './AuthContext';
 import { UserPresence } from './UserPresence';
 import { ParticipantsPanel } from './ParticipantsPanel';
 

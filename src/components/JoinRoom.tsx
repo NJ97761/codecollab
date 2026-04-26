@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useFileSystem } from '../contexts/FileSystemContext';
+import { useFileSystem } from './FileSystemContext';
 import { ArrowRight, Plus, Loader2, Sparkles, Users, MessageSquare, Zap } from 'lucide-react';
 
 export function JoinRoom() {

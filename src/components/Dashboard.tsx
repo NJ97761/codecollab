@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useFileSystem } from '../contexts/FileSystemContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useFileSystem } from './FileSystemContext';
+import { useAuth } from './AuthContext';
 import { RoomSummary } from '../types';
 import {
   Plus, ArrowRight, Loader2, LogOut, Trash2, Clock, Code2,

@@ -218,26 +218,24 @@ codecollab/
 │   ├── socket.ts                     # Socket.IO client setup
 │   ├── types.ts                      # TypeScript type definitions
 │   ├── index.css                     # Global styles + Tailwind
+│   ├── vite-env.d.ts                 # Vite type declarations
 │   │
-│   ├── components/
-│   │   ├── AuthPage.tsx              # Login/Register (Email + Google OAuth)
-│   │   ├── Dashboard.tsx             # Project list + create/delete/join
-│   │   ├── Header.tsx                # Top bar with ▶ Run button
-│   │   ├── CodeEditor.tsx            # Monaco Editor wrapper
-│   │   ├── FileExplorer.tsx          # Sidebar file tree
-│   │   ├── CommentPanel.tsx          # Comments sidebar with moderation UI
-│   │   ├── OutputPanel.tsx           # Code execution output terminal
-│   │   ├── ParticipantsPanel.tsx     # Online users list
-│   │   ├── StatusBar.tsx             # Bottom status bar
-│   │   ├── JoinRoom.tsx              # Join room by ID page
-│   │   └── UserPresence.tsx          # User avatar indicators
-│   │
-│   ├── contexts/
-│   │   └── FileSystemContext.tsx     # Central state management (files, rooms, socket)
-│   │
-│   └── utils/
-│       ├── moderation.ts             # Client-side TF.js toxicity checks
-│       └── runCode.ts                # Code execution utility
+│   └── components/                   # All components, contexts & utilities
+│       ├── AuthPage.tsx              # Login/Register (Email + Google OAuth)
+│       ├── Dashboard.tsx             # Project list + create/delete/join
+│       ├── Header.tsx                # Top bar with ▶ Run button
+│       ├── CodeEditor.tsx            # Monaco Editor wrapper
+│       ├── FileExplorer.tsx          # Sidebar file tree
+│       ├── CommentPanel.tsx          # Comments sidebar with moderation UI
+│       ├── OutputPanel.tsx           # Code execution output terminal
+│       ├── ParticipantsPanel.tsx     # Online users list
+│       ├── StatusBar.tsx             # Bottom status bar
+│       ├── JoinRoom.tsx              # Join room by ID page
+│       ├── UserPresence.tsx          # User avatar indicators
+│       ├── AuthContext.tsx           # Auth state provider (Firebase)
+│       ├── FileSystemContext.tsx     # Central state management (files, rooms, socket)
+│       ├── moderation.ts            # Client-side TF.js toxicity checks
+│       └── runCode.ts               # Code execution utility
 │
 ├── vercel.json                       # Vercel config (rewrites, serverless timeout)
 ├── vite.config.ts                    # Vite config (proxy for local dev)

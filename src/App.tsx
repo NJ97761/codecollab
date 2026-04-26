@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react';
-import { FileSystemProvider, useFileSystem } from './contexts/FileSystemContext';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FileSystemProvider, useFileSystem } from './components/FileSystemContext';
+import { AuthProvider, useAuth } from './components/AuthContext';
 import { AuthPage } from './components/AuthPage';
 import { Dashboard } from './components/Dashboard';
 import { Header } from './components/Header';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FileText, Plus, Trash2, Folder, MessageSquare } from 'lucide-react';
-import { useFileSystem } from '../contexts/FileSystemContext';
+import { useFileSystem } from './FileSystemContext';
 
 export function FileExplorer() {
   const { state, createFile, deleteFile, setActiveFile, isViewer } = useFileSystem();

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from './AuthContext';
 import { Mail, Lock, User, Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
 
 export function AuthPage() {
