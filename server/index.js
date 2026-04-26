@@ -12,20 +12,29 @@ const fs = require('fs');
 let db = null;
 const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
 
-if (fs.existsSync(serviceAccountPath)) {
-  try {
-    const serviceAccount = require(serviceAccountPath);
+// Try env var first (for Railway/production), then fall back to local file
+try {
+  let serviceAccount = null;
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    console.log('📦 Using Firebase service account from environment variable');
+  } else if (fs.existsSync(serviceAccountPath)) {
+    serviceAccount = require(serviceAccountPath);
+    console.log('📦 Using Firebase service account from local file');
+  }
+
+  if (serviceAccount) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
     db = admin.firestore();
     console.log('✅ Firebase Admin initialized — Firestore connected');
-  } catch (e) {
-    console.warn('⚠️  Firebase Admin init failed:', e.message);
-    console.warn('⚠️  Falling back to in-memory store');
+  } else {
+    console.warn('⚠️  No Firebase credentials found — using in-memory store (data will not persist)');
   }
-} else {
-  console.warn('⚠️  serviceAccountKey.json not found — using in-memory store (data will not persist)');
+} catch (e) {
+  console.warn('⚠️  Firebase Admin init failed:', e.message);
+  console.warn('⚠️  Falling back to in-memory store');
 }
 
 // ─── Express + Socket.IO ───────────────────────────────────────────────────────
@@ -33,6 +42,7 @@ const app = express();
 const server = http.createServer(app);
 
 const allowedOrigins = [
+  'https://codecollab-eta.vercel.app',
   'https://codecollab-1xzx.vercel.app',
   'https://codecollab-git-main-ks-projects-9bf6abdf.vercel.app',
   'http://localhost:5173',
