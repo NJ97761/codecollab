@@ -8,7 +8,9 @@ export interface RunResult {
   mode: 'server' | 'html';
 }
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+// On Vercel: VITE_SERVER_URL is not set → use '' (same-origin → hits /api/run serverless fn)
+// Locally: VITE_SERVER_URL = 'http://localhost:3001' → hits the Express server
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || '';
 
 // ─── HTML iframe build ────────────────────────────────────────────────────────
 export function buildHtmlSrcdoc(files: FileItem[]): string {
