@@ -18,7 +18,7 @@
 
 // ─── Technical terms whitelist (must NOT be flagged as offensive) ──────────────
 const TECHNICAL_WHITELIST = [
-  'kill', 'abort', 'dummy', 'master', 'slave', 'blacklist', 'whitelist',
+  'kill', 'abort', 'dummy', 'master', 'blacklist', 'whitelist',
   'fork', 'hang', 'dead', 'execute', 'terminate', 'crash', 'corrupt',
   'poison', 'evil', 'hack', 'inject', 'exploit',
 ];
@@ -43,6 +43,45 @@ function isLikelyTechnicalContext(text) {
   );
   // If most words are technical terms, treat as technical context
   return nonTechnical.length <= Math.max(words.length * 0.6, 2);
+}
+
+// ─── Built-in offensive word classifier (works without any API key) ───────────
+const OFFENSIVE_PATTERNS = [
+  // Slurs and hate speech
+  'nigger', 'nigga', 'faggot', 'fag', 'retard', 'retarded', 'tranny',
+  'chink', 'spic', 'kike', 'wetback', 'coon', 'gook', 'raghead',
+  'beaner', 'towelhead', 'cracker',
+  // Sexual / vulgar
+  'fuck', 'fucking', 'fucker', 'fucked', 'motherfucker',
+  'shit', 'shitty', 'bullshit', 'asshole', 'bitch', 'bastard',
+  'dick', 'cock', 'pussy', 'cunt', 'whore', 'slut', 'cum',
+  // Abusive
+  'idiot', 'moron', 'imbecile', 'dumbass', 'dipshit',
+  'stfu', 'gtfo', 'kys',
+  // Derogatory
+  'slave', 'negro', 'nazi',
+];
+
+function classifyWithBuiltIn(text) {
+  const lower = text.toLowerCase();
+  const words = lower.split(/[\s,.!?;:'"()\[\]{}]+/).filter(Boolean);
+
+  for (const pattern of OFFENSIVE_PATTERNS) {
+    // Check as whole word
+    if (words.includes(pattern)) {
+      // Double-check it's not in a technical context like "master-slave architecture"
+      if (pattern === 'slave' && /master[\s-]slave|slave[\s-]node|slave[\s-]server/i.test(text)) {
+        continue; // Allow in technical context
+      }
+      return {
+        isOffensive: true,
+        confidence: 0.90,
+        source: 'built_in',
+      };
+    }
+  }
+
+  return { isOffensive: false, confidence: 0, source: 'built_in' };
 }
 
 // ─── HuggingFace Inference API ────────────────────────────────────────────────
@@ -184,9 +223,8 @@ async function classifyWithLocalML(text) {
 // ─── Main exported function ───────────────────────────────────────────────────
 /**
  * Classify a comment for offensive language.
- * Tries classifiers in order: local ML → HuggingFace → Perspective.
- * Returns { isOffensive: boolean, confidence: number } on first successful response.
- * Fails open (returns not-offensive) if all services are unreachable.
+ * Tries classifiers in order: local ML → HuggingFace → Perspective → built-in.
+ * The built-in classifier always works (no API key needed).
  *
  * @param {string} text — The comment text to classify
  * @returns {Promise<{isOffensive: boolean, confidence: number}>}
@@ -197,7 +235,7 @@ async function classifyComment(text) {
     return { isOffensive: false, confidence: 0, source: 'whitelist' };
   }
 
-  // Step 2: Try classifiers in priority order
+  // Step 2: Try external ML classifiers in priority order
   const classifiers = [
     classifyWithLocalML,
     classifyWithHuggingFace,
@@ -212,9 +250,10 @@ async function classifyComment(text) {
     }
   }
 
-  // Step 3: All classifiers unreachable — fail open
-  console.warn('[OffensiveFilter] All classifiers unreachable — allowing comment (fail-open)');
-  return { isOffensive: false, confidence: 0 };
+  // Step 3: Built-in word classifier (always works, no API needed)
+  const builtInResult = classifyWithBuiltIn(text);
+  console.log(`[OffensiveFilter] built_in: offensive=${builtInResult.isOffensive}, confidence=${builtInResult.confidence}`);
+  return { isOffensive: builtInResult.isOffensive, confidence: builtInResult.confidence };
 }
 
 module.exports = { classifyComment };

@@ -8,9 +8,9 @@ export interface RunResult {
   mode: 'server' | 'html';
 }
 
-// On Vercel: VITE_SERVER_URL is not set → use '' (same-origin → hits /api/run serverless fn)
-// Locally: VITE_SERVER_URL = 'http://localhost:3001' → hits the Express server
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || '';
+// Always use same-origin /api/run so it hits the Vercel serverless function (Wandbox).
+// DO NOT use VITE_SERVER_URL here — that points to the Express backend which lacks compilers.
+const RUN_API_URL = '/api/run';
 
 // ─── HTML iframe build ────────────────────────────────────────────────────────
 export function buildHtmlSrcdoc(files: FileItem[]): string {
@@ -44,7 +44,7 @@ export async function runOnServer(
 ): Promise<RunResult> {
   const startTime = Date.now();
   try {
-    const res = await fetch(`${SERVER_URL}/api/run`, {
+    const res = await fetch(RUN_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ language, files: files.map(f => ({ name: f.name, content: f.content })) }),
