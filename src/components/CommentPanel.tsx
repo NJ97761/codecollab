@@ -38,7 +38,16 @@ export function CommentPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             setTimeout(() => setRejected(''), 5000);
         };
         socket.on('comment-rejected', handler);
-        return () => { socket.off('comment-rejected', handler); };
+        // [NEW ADDITION - Offensive Language Filter] Listen for ML-based blocks
+        const mlHandler = ({ reason, confidence }: { reason: string; confidence: number }) => {
+            setRejected(`🤖 ${reason} (${(confidence * 100).toFixed(0)}% confidence)`);
+            setTimeout(() => setRejected(''), 6000);
+        };
+        socket.on('comment_blocked', mlHandler);
+        return () => {
+            socket.off('comment-rejected', handler);
+            socket.off('comment_blocked', mlHandler); // [NEW ADDITION]
+        };
     }, []);
 
     const handleAddComment = async () => {

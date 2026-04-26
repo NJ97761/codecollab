@@ -8,6 +8,8 @@ const admin = require('firebase-admin');
 const path = require('path');
 const fs = require('fs');
 const leoProfanity = require('leo-profanity');
+// [NEW ADDITION - Offensive Language Filter] ML-powered classification service
+const { classifyComment } = require('./services/offensiveLanguageFilter');
 
 // ─── Firebase Admin Init ───────────────────────────────────────────────────────
 let db = null;
@@ -457,6 +459,26 @@ io.on('connection', (socket) => {
       if (leoProfanity.check(comment.text)) {
         socket.emit('comment-rejected', { reason: '🚫 Comment blocked: contains inappropriate language.' });
         return;
+      }
+
+      // [NEW ADDITION - Offensive Language Filter] ML-based classification (2nd layer)
+      try {
+        const mlResult = await classifyComment(comment.text);
+        if (mlResult.isOffensive) {
+          socket.emit('comment-rejected', {
+            reason: `🤖 Comment blocked by AI moderation (confidence: ${(mlResult.confidence * 100).toFixed(0)}%). Please rephrase your comment.`
+          });
+          // [NEW ADDITION] Also emit the comment_blocked event for dedicated listeners
+          socket.emit('comment_blocked', {
+            reason: 'Offensive language detected by AI classifier.',
+            confidence: mlResult.confidence,
+          });
+          console.log(`[Moderation] Blocked comment from ${currentUser.name}: "${comment.text.substring(0, 50)}..." (confidence: ${mlResult.confidence.toFixed(3)})`);
+          return;
+        }
+      } catch (mlErr) {
+        // [NEW ADDITION] Fail-open: if ML service errors, allow comment through
+        console.warn('[Moderation] ML filter error — allowing comment:', mlErr.message);
       }
 
       const room = await getRoom(currentRoomId);
