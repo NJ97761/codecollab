@@ -49,7 +49,10 @@ const allowedOrigins = [
 
 const corsCallback = (origin, callback) => {
   if (!origin) return callback(null, true);
-  if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) return callback(null, true);
+  if (allowedOrigins.includes(origin)) return callback(null, true);
+  if (origin.endsWith('.vercel.app')) return callback(null, true);
+  if (origin.endsWith('.railway.app')) return callback(null, true);
+  if (origin.includes('localhost')) return callback(null, true);
   return callback(new Error('Not allowed by CORS'));
 };
 

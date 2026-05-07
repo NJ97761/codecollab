@@ -9,6 +9,9 @@ export default defineConfig({
   },
   // Proxy /api/run to Express backend in local dev
   server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
     proxy: {
       '/api/run': {
         target: 'http://localhost:3001',
