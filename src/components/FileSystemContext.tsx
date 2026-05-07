@@ -214,6 +214,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
 
   const joinRoom = useCallback(async (roomId: string, userName: string) => {
     const uid = authUser?.uid || 'anonymous';
+    const avatar = authUser?.photoURL || undefined;
     setState((prev) => ({ ...prev, connectionStatus: 'connecting' }));
     const socket = connectSocket();
 
@@ -223,7 +224,7 @@ export function FileSystemProvider({ children }: { children: ReactNode }) {
       const tryJoin = () => {
         socket.emit(
           'join-room',
-          { roomId, userName, uid },
+          { roomId, userName, uid, avatar },
           (response: { success: boolean; room: any; user: User }) => {
             clearTimeout(timeout);
             if (response.success) {

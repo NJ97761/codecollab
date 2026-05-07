@@ -356,7 +356,7 @@ io.on('connection', (socket) => {
   let currentUser = null;
 
   // ── Join Room ──────────────────────────────────────────────────────────────
-  socket.on('join-room', async ({ roomId, userName, uid }, callback) => {
+  socket.on('join-room', async ({ roomId, userName, uid, avatar }, callback) => {
     try {
       const userUid = uid || 'anonymous';
       const room = await ensureRoom(roomId, userUid);
@@ -380,6 +380,7 @@ io.on('connection', (socket) => {
         id: socket.id, uid: userUid,
         name: userName || `User-${socket.id.slice(0, 4)}`,
         color: getRandomColor(roomUsers.size), role,
+        avatar: avatar || undefined,  // Store avatar (URL or undefined)
       };
       roomUsers.set(socket.id, currentUser);
       socket.join(roomId);
@@ -422,7 +423,8 @@ io.on('connection', (socket) => {
   socket.on('cursor-update', ({ fileId, position }) => {
     if (!currentRoomId || !currentUser) return;
     socket.to(currentRoomId).emit('cursor-update', {
-      userId: socket.id, userName: currentUser.name, userColor: currentUser.color, fileId, position,
+      userId: socket.id, userName: currentUser.name, userColor: currentUser.color,
+      userAvatar: currentUser.avatar, fileId, position,
     });
   });
 

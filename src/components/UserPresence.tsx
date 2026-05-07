@@ -11,13 +11,32 @@ export function UserPresence({ users }: { users: User[] }) {
         <div className="flex items-center gap-1">
             <div className="flex -space-x-2">
                 {displayed.map((user) => (
-                    <div
-                        key={user.id}
-                        className="relative w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white ring-2 ring-slate-950 cursor-default transition-transform hover:scale-110 hover:z-10"
-                        style={{ backgroundColor: user.color }}
-                        title={`${user.name} (${user.role})`}
-                    >
-                        {user.name[0]?.toUpperCase()}
+                    <div key={user.id} className="relative group">
+                        {/* Real Avatar Image */}
+                        {user.avatar && (
+                            <img
+                                src={user.avatar}
+                                alt={user.name}
+                                className="w-7 h-7 rounded-full ring-2 ring-slate-950 cursor-default transition-transform hover:scale-110 hover:z-10 object-cover"
+                                title={`${user.name} (${user.role})`}
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                }}
+                            />
+                        )}
+
+                        {/* Fallback: Initials */}
+                        {!user.avatar && (
+                            <div
+                                className="relative w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white ring-2 ring-slate-950 cursor-default transition-transform hover:scale-110 hover:z-10"
+                                style={{ backgroundColor: user.color }}
+                                title={`${user.name} (${user.role})`}
+                            >
+                                {user.name[0]?.toUpperCase()}
+                            </div>
+                        )}
+
+                        {/* Owner Badge */}
                         {user.role === 'owner' && (
                             <span className="absolute -top-1 -right-1 text-amber-300 drop-shadow-sm">
                                 <Crown size={9} fill="currentColor" />

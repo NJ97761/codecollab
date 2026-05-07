@@ -24,6 +24,7 @@ export interface User {
   name: string;
   color: string;
   role: UserRole;
+  avatar?: string;  // Avatar URL or initials
 }
 
 export interface CursorPosition {
@@ -35,6 +36,7 @@ export interface RemoteCursor {
   userId: string;
   userName: string;
   userColor: string;
+  userAvatar?: string;
   fileId: string;
   position: CursorPosition;
 }
@@ -47,6 +49,14 @@ export interface RoomState {
   files: FileItem[];
   users: User[];
   comments: Comment[];
+}
+
+export interface AppState {
+  room: RoomState | null;
+  currentUser: User | null;
+  activeFileId: string | null;
+  connectionStatus: 'connected' | 'disconnected' | 'connecting';
+  remoteCursors: RemoteCursor[];
 }
 
 export interface RoomSummary {
